@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}History Sensor — AmoniaLele{% endblock %}
+{% block content %}
+<div class="page-header"><h2>History Sensor</h2><p>Data historis per kolam dari log MQTT</p></div>
+<div class="card mb-3">
+  <form method="GET" class="filter-row">
+    <div class="fg"><label>Kolam</label>
+      <select name="kolam_id">
+        <option value="">Pilih kolam...</option>
+        {% for k in kolam_list %}<option value="{{ k.id }}" {% if selected_kolam==k.id|string %}selected{% endif %}>{{ k.nama }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="fg"><label>Dari</label><input type="date" name="dari" value="{{ request.args.get('dari','') }}"></div>
+    <div class="fg"><label>Sampai</label><input type="date" name="sampai" value="{{ request.args.get('sampai','') }}"></div>
+    <button class="btn btn-primary" type="submit">Tampilkan</button>
+    {% if logs %}
+    <a href="{{ url_for('user.history') }}?kolam_id={{ selected_kolam }}&dari={{ request.args.get('dari','') }}&sampai={{ request.args.get('sampai','') }}&export=csv" class="btn"><i class="ti ti-download"></i> Export CSV</a>
+    {% endif %}
+  </form>
+</div>
+{% if logs %}
+<div class="card">
+  <div class="sh"><h3>Data sensor</h3><span class="text-muted small">{{ logs|length }} baris</span></div>
+  <div style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Waktu</th><th>NH3 (mg/L)</th><th>pH</th><th>Suhu (°C)</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for l in logs %}
+        <tr>
+          <td class="mono text-muted">{{ l.created_at.strftime('%d/%m %H:%M') }}</td>
+          <td class="{{ 'text-danger fw-500' if l.status=='bahaya' else ('text-warn fw-500' if l.status=='waspada' else '') }}">{{ ('%.4f'|format(l.nh3)) if l.nh3 is not none else '—' }}</td>
+          <td>{{ l.ph or '—' }}</td>
+          <td>{{ ('%.1f'|format(l.suhu)) if l.suhu else '—' }}</td>
+          <td>
+            {% if l.status=='normal' %}<span class="badge badge-ok">Normal</span>
+            {% elif l.status=='waspada' %}<span class="badge badge-warn">Waspada</span>
+            {% elif l.status=='bahaya' %}<span class="badge badge-danger">Bahaya</span>
+            {% else %}<span class="badge badge-gray">{{ l.status }}</span>{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

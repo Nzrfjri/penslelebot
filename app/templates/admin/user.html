@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Kelola User — AmoniaLele{% endblock %}
+{% block content %}
+<div class="page-header"><h2>Kelola User</h2><p>Manajemen akun pengguna &amp; Telegram ID</p></div>
+
+<div class="card mb-3">
+  <div class="sh"><h3>Tambah User Baru</h3></div>
+  <form method="POST" action="{{ url_for('admin.tambah_user') }}" class="form-inline-row">
+    <div class="fg"><label>Nama</label><input type="text" name="nama" required></div>
+    <div class="fg"><label>Email</label><input type="email" name="email" required></div>
+    <div class="fg"><label>Password</label><input type="password" name="password" required></div>
+    <div class="fg"><label>Role</label>
+      <select name="role"><option value="pemilik">Pemilik</option><option value="admin">Admin</option><option value="superadmin">Super Admin</option></select>
+    </div>
+    <div class="fg"><label>Telegram ID</label><input type="text" name="telegram_id" placeholder="628..."></div>
+    <div style="padding-top:20px"><button class="btn btn-primary" type="submit"><i class="ti ti-plus"></i> Tambah</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="sh"><h3>Daftar User</h3></div>
+  <table class="tbl">
+    <thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Telegram ID</th><th>Kolam</th><th>Aksi</th></tr></thead>
+    <tbody>
+    {% for u in user_list %}
+      <tr>
+        <td>{{ u.nama }}</td>
+        <td class="text-muted">{{ u.email }}</td>
+        <td><span class="badge {{ 'badge-info' if u.is_admin else 'badge-ok' }}">{{ u.role }}</span></td>
+        <td class="mono">{{ u.telegram_id or '—' }}</td>
+        <td>{% for k in u.kolam_list %}<span class="chip">{{ k.nama }}</span>{% else %}<span class="text-muted">—</span>{% endfor %}</td>
+        <td style="display:flex;gap:6px">
+          <button class="btn" style="font-size:11px" onclick="document.getElementById('edit-user-{{ u.id }}').classList.toggle('hidden')"><i class="ti ti-edit"></i></button>
+          {% if u.id != current_user.id %}
+          <form method="POST" action="{{ url_for('admin.hapus_user', user_id=u.id) }}" onsubmit="return confirm('Hapus user {{ u.nama }}?')">
+            <button class="btn btn-danger" style="font-size:11px" type="submit"><i class="ti ti-trash"></i></button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      <tr id="edit-user-{{ u.id }}" class="hidden">
+        <td colspan="6">
+          <form method="POST" action="{{ url_for('admin.edit_user', user_id=u.id) }}" class="form-inline-row" style="padding:8px 0">
+            <div class="fg"><label>Nama</label><input type="text" name="nama" value="{{ u.nama }}"></div>
+            <div class="fg"><label>Email</label><input type="email" name="email" value="{{ u.email }}"></div>
+            <div class="fg"><label>Password baru</label><input type="password" name="password" placeholder="(kosongkan jika tidak diubah)"></div>
+            <div class="fg"><label>Role</label>
+              <select name="role"><option {% if u.role=='pemilik' %}selected{% endif %} value="pemilik">Pemilik</option><option {% if u.role=='admin' %}selected{% endif %} value="admin">Admin</option><option {% if u.role=='superadmin' %}selected{% endif %} value="superadmin">Super Admin</option></select>
+            </div>
+            <div class="fg"><label>Telegram ID</label><input type="text" name="telegram_id" value="{{ u.telegram_id or '' }}"></div>
+            <div style="padding-top:20px"><button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy"></i> Simpan</button></div>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Login — AmoniaLele{% endblock %}
+
+{% block auth_content %}
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="logo-icon-lg"><i class="ti ti-fish"></i></span>
+      <h1>AmoniaLele</h1>
+      <p>Sistem Monitoring Kolam Lele</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+      <div class="flash flash-{{ cat }}"><i class="ti ti-alert-circle"></i> {{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('auth.login') }}">
+      <div class="fg">
+        <label>Email</label>
+        <input type="email" name="email" placeholder="admin@lele.id" required autofocus>
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">
+        <i class="ti ti-login"></i> Masuk
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

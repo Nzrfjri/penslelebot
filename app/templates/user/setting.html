@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Pengaturan — AmoniaLele{% endblock %}
+{% block content %}
+<div class="page-header"><h2>Pengaturan</h2><p>Atur akun dan Telegram ID untuk menerima notifikasi</p></div>
+<div class="card" style="max-width:500px">
+  <form method="POST">
+    <h3 style="font-size:14px;font-weight:500;margin-bottom:14px">Akun Saya</h3>
+    <div class="fg"><label>Nama</label><input type="text" name="nama" value="{{ current_user.nama }}" required></div>
+    <div class="fg"><label>Email</label><input type="email" value="{{ current_user.email }}" disabled style="opacity:.6"></div>
+    <div class="fg"><label>Password Baru</label><input type="password" name="password" placeholder="(kosongkan jika tidak diubah)"></div>
+
+    <div class="sep"></div>
+    <h3 style="font-size:14px;font-weight:500;margin:14px 0 8px">Notifikasi Telegram</h3>
+    <p class="hint mb-2">Pastikan sudah mulai chat dengan <span class="mono">@AmoniaLeleBot</span> terlebih dahulu, lalu ketik /start.</p>
+    <div class="fg"><label>Telegram ID / Username</label><input type="text" name="telegram_id" value="{{ current_user.telegram_id or '' }}" placeholder="628xxxxxxxx atau @username"></div>
+    <div class="info-box mb-3">
+      <i class="ti ti-{% if current_user.tg_verified %}check{% else %}clock{% endif %}" style="color:{% if current_user.tg_verified %}var(--c-ok){% else %}var(--c-warn){% endif %}"></i>
+      Status: <span style="color:{% if current_user.tg_verified %}var(--c-ok){% else %}var(--c-warn){% endif %};font-weight:500">
+        {% if current_user.tg_verified %}Terverifikasi{% else %}Belum terverifikasi — ketik /start ke bot{% endif %}
+      </span>
+    </div>
+
+    <div class="fg"><label>Kolam yang dipantau</label>
+      <div style="padding:4px 0">{% for k in current_user.kolam_list %}<span class="chip">{{ k.nama }}</span>{% else %}<span class="text-muted">—</span>{% endfor %}</div>
+      <span class="hint">Ditetapkan oleh admin. Hubungi admin untuk perubahan.</span>
+    </div>
+
+    <div style="text-align:right"><button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy"></i> Simpan Perubahan</button></div>
+  </form>
+</div>
+{% endblock %}

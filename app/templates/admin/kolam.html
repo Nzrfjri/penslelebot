@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Kelola Kolam — AmoniaLele{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Kelola Kolam</h2>
+  <p>Tambah kolam, atur MQTT topic, pemilik &amp; perangkat</p>
+</div>
+
+<div class="card mb-3">
+  <div class="sh"><h3>Tambah Kolam Baru</h3></div>
+  <form method="POST" action="{{ url_for('admin.tambah_kolam') }}" class="form-inline-row">
+    <div class="fg"><label>Nama Kolam</label><input type="text" name="nama" placeholder="Kolam A-1" required></div>
+    <div class="fg" style="flex:2"><label>MQTT Topic (data)</label><input type="text" name="mqtt_topic" placeholder="lele/kolam-a1/data" required><span class="hint">LWT topic akan otomatis: lele/kolam-a1/status</span></div>
+    <div style="padding-top:20px"><button class="btn btn-primary" type="submit"><i class="ti ti-plus"></i> Tambah</button></div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="sh"><h3>Daftar Kolam</h3></div>
+  <div style="overflow-x:auto">
+  <table class="tbl">
+    <thead><tr><th>Nama</th><th>MQTT Topic</th><th>LWT Topic</th><th>Status</th><th>Pemilik</th><th>Aksi</th></tr></thead>
+    <tbody>
+    {% for k in kolam_list %}
+      <tr>
+        <td style="font-weight:500">{{ k.nama }}</td>
+        <td class="mono">{{ k.mqtt_topic }}</td>
+        <td class="mono text-muted">{{ k.lwt_topic or '—' }}</td>
+        <td>
+          {% if k.status=='online' %}<span class="badge badge-ok"><span class="dot dot-g"></span> Online</span>
+          {% elif k.status=='waspada' %}<span class="badge badge-warn"><span class="dot dot-a"></span> Waspada</span>
+          {% elif k.status in ('alert','bahaya') %}<span class="badge badge-danger"><span class="dot dot-r"></span> Alert</span>
+          {% else %}<span class="badge badge-gray"><span class="dot dot-r"></span> Offline</span>{% endif %}
+        </td>
+        <td>
+          {% for u in k.pemilik_list %}
+            <span class="chip">{{ u.nama }}
+              <form method="POST" action="{{ url_for('admin.assign_pemilik', kolam_id=k.id) }}" style="display:inline">
+                <input type="hidden" name="user_id" value="{{ u.id }}">
+                <input type="hidden" name="aksi" value="hapus">
+                <button type="submit" class="chip-rm" title="Hapus"><i class="ti ti-x"></i></button>
+              </form>
+            </span>
+          {% endfor %}
+          <!-- Dropdown tambah pemilik -->
+          <form method="POST" action="{{ url_for('admin.assign_pemilik', kolam_id=k.id) }}" style="display:inline-flex;align-items:center;gap:4px">
+            <input type="hidden" name="aksi" value="tambah">
+            <select name="user_id" class="select-sm">
+              <option value="">+ pemilik</option>
+              {% for u in user_list %}
+                {% if u not in k.pemilik_list %}
+                <option value="{{ u.id }}">{{ u.nama }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+            <button class="btn" style="font-size:11px;padding:4px 8px" type="submit"><i class="ti ti-check"></i></button>
+          </form>
+        </td>
+        <td>
+          <div style="display:inline-flex;gap:6px;align-items:center">
+            <button class="btn" style="font-size:11px" onclick="document.getElementById('edit-kolam-{{ k.id }}').classList.toggle('hidden')"><i class="ti ti-edit"></i></button>
+            <form method="POST" action="{{ url_for('admin.hapus_kolam', kolam_id=k.id) }}" onsubmit="return confirm('Yakin ingin menghapus kolam {{ k.nama }}?')">
+              <button class="btn btn-danger" style="font-size:11px" type="submit"><i class="ti ti-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      <!-- Edit row -->
+      <tr id="edit-kolam-{{ k.id }}" class="hidden">
+        <td colspan="6">
+          <form method="POST" action="{{ url_for('admin.edit_kolam', kolam_id=k.id) }}" class="form-inline-row" style="padding:8px 0">
+            <div class="fg"><label>Nama</label><input type="text" name="nama" value="{{ k.nama }}" required></div>
+            <div class="fg" style="flex:2"><label>MQTT Topic</label><input type="text" name="mqtt_topic" value="{{ k.mqtt_topic }}" required></div>
+            <div class="fg" style="flex:2"><label>LWT Topic</label><input type="text" name="lwt_topic" value="{{ k.lwt_topic or '' }}"></div>
+            <div style="padding-top:20px"><button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy"></i> Simpan</button></div>
+          </form>
+        </td>
+      </tr>
+    {% else %}<tr><td colspan="6" class="text-center text-muted py-3">Belum ada kolam</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Atur Alert — AmoniaLele{% endblock %}
+{% block content %}
+<div class="page-header"><h2>Atur Alert &amp; Threshold</h2><p>Batas nilai sensor untuk memicu notifikasi Telegram</p></div>
+<div class="row gap-3">
+  <div class="card" style="flex:2">
+    <div class="sh"><h3>Threshold Global</h3></div>
+    <form method="POST">
+      <div class="thr-row"><div class="tn"><b>NH3 — Waspada</b><div class="hint">Notif pertama dikirim</div></div><input type="number" name="nh3_warn" value="{{ cfg.nh3_warn or 0.5 }}" step="0.1"> <span class="unit">mg/L</span></div>
+      <div class="thr-row"><div class="tn"><b>NH3 — Bahaya</b><div class="hint">Notif urgent dikirim</div></div><input type="number" name="nh3_danger" value="{{ cfg.nh3_danger or 1.0 }}" step="0.1"> <span class="unit">mg/L</span></div>
+      <div class="thr-row"><div class="tn"><b>Suhu Min</b></div><input type="number" name="suhu_min" value="{{ cfg.suhu_min or 25 }}"> <span class="unit">°C</span></div>
+      <div class="thr-row"><div class="tn"><b>Suhu Max</b></div><input type="number" name="suhu_max" value="{{ cfg.suhu_max or 32 }}"> <span class="unit">°C</span></div>
+      <div class="thr-row"><div class="tn"><b>pH Min</b></div><input type="number" name="ph_min" value="{{ cfg.ph_min or 6.5 }}" step="0.1"> <span class="unit">pH</span></div>
+      <div class="thr-row"><div class="tn"><b>pH Max</b></div><input type="number" name="ph_max" value="{{ cfg.ph_max or 8.5 }}" step="0.1"> <span class="unit">pH</span></div>
+      <div style="margin-top:14px;text-align:right"><button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy"></i> Simpan</button></div>
+    </form>
+  </div>
+  <div class="card" style="flex:1">
+    <div class="sh"><h3>Interval Notif</h3></div>
+    <form method="POST">
+      <div class="fg"><label>Jeda antar notif alert (menit)</label><input type="number" name="notif_interval" value="{{ cfg.notif_interval or 30 }}"></div>
+      <div class="fg"><label>Timeout offline otomatis (menit)</label><input type="number" name="offline_timeout_minutes" value="{{ cfg.offline_timeout_minutes or 15 }}"><span class="hint">Jika tidak ada data masuk selama durasi ini, status kolam dipaksa menjadi offline.</span></div>
+      <div class="fg"><label>Notif saat kondisi pulih</label>
+        <select name="notif_pulih"><option value="1" {% if cfg.notif_pulih=='1' %}selected{% endif %}>Ya, kirim notif</option><option value="0" {% if cfg.notif_pulih=='0' %}selected{% endif %}>Tidak</option></select>
+      </div>
+      <div style="text-align:right"><button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy"></i> Simpan</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="row gap-3" style="margin-top:16px;align-items:stretch">
+  <div class="card" style="flex:1;min-width:280px">
+    <div class="sh"><h3>Format Pesan Alert</h3></div>
+    <form method="POST">
+      <input type="hidden" name="template_section" value="alert">
+      <div class="fg">
+        <label>Template pesan Alert</label>
+        <textarea name="alert_template" rows="8" style="width:100%;min-height:140px">{{ cfg.alert_message_template or '' }}</textarea>
+        <div class="hint">Placeholder: {emoji}, {kolam_nama}, {nh3}, {ph}, {suhu}, {status}, {waktu}</div>
+      </div>
+      <div style="text-align:right"><button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy"></i> Simpan Alert</button></div>
+    </form>
+  </div>
+
+  <div class="card" style="flex:1;min-width:280px">
+    <div class="sh"><h3>Format Pesan Recovery</h3></div>
+    <form method="POST">
+      <input type="hidden" name="template_section" value="recovery">
+      <div class="fg">
+        <label>Template pesan recovery</label>
+        <textarea name="recovery_template" rows="8" style="width:100%;min-height:140px">{{ cfg.recovery_message_template or '' }}</textarea>
+        <div class="hint">Placeholder: {emoji}, {kolam_nama}, {nh3}, {ph}, {suhu}, {status}, {waktu}</div>
+      </div>
+      <div style="text-align:right"><button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy"></i> Simpan Recovery</button></div>
+    </form>
+  </div>
+
+  <div class="card" style="flex:1;min-width:280px">
+    <div class="sh"><h3>Format Pesan Offline</h3></div>
+    <form method="POST">
+      <input type="hidden" name="template_section" value="offline">
+      <div class="fg">
+        <label>Template pesan offline</label>
+        <textarea name="offline_template" rows="8" style="width:100%;min-height:140px">{{ cfg.offline_message_template or '' }}</textarea>
+        <div class="hint">Placeholder: {emoji}, {kolam_nama}, {nh3}, {ph}, {suhu}, {status}, {waktu}</div>
+      </div>
+      <div style="text-align:right"><button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy"></i> Simpan Offline</button></div>
+    </form>
+  </div>
+</div>{% endblock %}

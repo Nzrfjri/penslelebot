@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — AmoniaLele{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Dashboard Admin</h2>
+  <p>Ringkasan seluruh kolam &amp; kondisi sistem</p>
+</div>
+
+<div class="metric-grid">
+  <div class="mc">
+    <div class="mc-label">Total Kolam</div>
+    <div class="mc-val">{{ kolam_list|length }}</div>
+    <div class="mc-sub">terdaftar</div>
+  </div>
+  <div class="mc">
+    <div class="mc-label">MQTT Broker</div>
+    <div class="mc-val" id="mqtt-status-val" style="color:var(--c-ok)">—</div>
+    <div class="mc-sub" id="mqtt-status-sub">mengecek...</div>
+  </div>
+  <div class="mc">
+    <div class="mc-label">Alert Aktif</div>
+    <div class="mc-val" style="color:var(--c-danger)">{{ total_alert }}</div>
+    <div class="mc-sub">kolam bermasalah</div>
+  </div>
+  <div class="mc">
+    <div class="mc-label">Total User</div>
+    <div class="mc-val">{{ total_user }}</div>
+    <div class="mc-sub">terdaftar</div>
+  </div>
+</div>
+
+<div class="kolam-grid" id="kolam-grid">
+{% for k in kolam_list %}
+  {% set last = k.last_log %}
+  <div class="kcard" data-kolam-id="{{ k.id }}">
+    <div class="kname">
+      <span class="dot dot-{{ 'g' if k.status=='online' else ('a' if k.status=='waspada' else 'r') }}"></span>
+      {{ k.nama }}
+    </div>
+    <div class="krow"><span>NH3</span><span class="kval kval-nh3">{{ '%.2f mg/L'|format(last.nh3) if last and last.nh3 is not none else '—' }}</span></div>
+    <div class="krow"><span>pH</span><span class="kval kval-ph">{{ last.ph if last and last.ph else '—' }}</span></div>
+    <div class="krow"><span>Suhu</span><span class="kval kval-suhu">{{ ('%.1f °C'|format(last.suhu)) if last and last.suhu is not none else '—' }}</span></div>
+    <div class="krow-topic mono">{{ k.mqtt_topic }}</div>
+    <div class="kfoot">
+      <span class="badge badge-{{ 'ok' if k.status=='online' else ('warn' if k.status=='waspada' else ('danger' if k.status in ('alert','bahaya') else 'gray')) }}">
+        {% if k.status == 'online' %}<i class="ti ti-check"></i> Normal
+        {% elif k.status == 'waspada' %}<i class="ti ti-alert-circle"></i> Waspada
+        {% elif k.status in ('alert','bahaya') %}<i class="ti ti-alert-triangle"></i> Bahaya
+        {% else %}<i class="ti ti-wifi-off"></i> LWT: Offline{% endif %}
+      </span>
+      <span class="ts">{{ k.last_seen.strftime('%H:%M:%S') if k.last_seen else '—' }}</span>
+    </div>
+  </div>
+{% else %}
+  <p style="color:var(--color-text-secondary);grid-column:1/-1">Belum ada kolam. <a href="{{ url_for('admin.kelola_kolam') }}">Tambah kolam</a></p>
+{% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Live update via polling /admin/api/live-data setiap 10 detik
+function refreshDashboard(){
+  fetch("{{ url_for('admin.live_data') }}")
+    .then(r=>r.json()).then(data=>{
+      const statusMap = {"online":"ok","waspada":"warn","bahaya":"danger","alert":"danger","offline":"gray"};
+      const dotMap    = {"online":"g","waspada":"a","bahaya":"r","alert":"r","offline":"r"};
+      let alertCount  = 0;
+      data.forEach(k=>{
+        const card = document.querySelector(`[data-kolam-id="${k.id}"]`);
+        if(!card) return;
+        card.querySelector(".kval-nh3").textContent = k.nh3 !== null && k.nh3 !== undefined ? parseFloat(k.nh3).toFixed(2)+" mg/L" : "—";
+        card.querySelector(".kval-ph").textContent  = k.ph ? k.ph : "—";
+        card.querySelector(".kval-suhu").textContent= k.suhu !== null && k.suhu !== undefined ? parseFloat(k.suhu).toFixed(1)+" °C" : "—";
+        card.querySelector(".ts").textContent       = k.last_seen || "—";
+
+        const dot = card.querySelector(".dot");
+        dot.className = `dot dot-${dotMap[k.status]||"r"}`;
+
+        const badge = card.querySelector(".badge");
+        if (badge) {
+          const status = k.status || "offline";
+          badge.className = `badge badge-${statusMap[status] || "gray"}`;
+          if (status === "online") {
+            badge.innerHTML = '<i class="ti ti-check"></i> Normal';
+          } else if (status === "waspada") {
+            badge.innerHTML = '<i class="ti ti-alert-circle"></i> Waspada';
+          } else if (status === "bahaya" || status === "alert") {
+            badge.innerHTML = '<i class="ti ti-alert-triangle"></i> Bahaya';
+          } else {
+            badge.innerHTML = '<i class="ti ti-wifi-off"></i> LWT: Offline';
+          }
+        }
+        if(["waspada","bahaya","alert"].includes(k.status)) alertCount++;
+      });
+      document.getElementById("mqtt-status-val").textContent = data.length > 0 ? "Terhubung" : "—";
+      document.getElementById("mqtt-status-sub").textContent = `${data.filter(k=>k.last_seen).length} client online`;
+    });
+}
+refreshDashboard();
+setInterval(refreshDashboard, 1000);
+</script>
+{% endblock %}

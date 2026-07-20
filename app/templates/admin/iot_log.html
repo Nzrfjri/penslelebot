@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Log Data IoT — AmoniaLele{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Log Data IoT</h2>
+  <p>Payload MQTT yang diterima server dari setiap perangkat</p>
+</div>
+
+<div class="card mb-3">
+  <form method="GET" class="filter-row">
+    <div class="fg"><label>Kolam / Topic</label>
+      <select name="kolam_id">
+        <option value="">Semua</option>
+        {% for k in kolam_list %}<option value="{{ k.id }}" {% if request.args.get('kolam_id')==k.id|string %}selected{% endif %}>{{ k.nama }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="fg"><label>Status</label>
+      <select name="status">
+        <option value="">Semua</option>
+        <option value="normal">Valid</option>
+        <option value="waspada">Waspada</option>
+        <option value="bahaya">Bahaya</option>
+        <option value="parse_error">Parse Error</option>
+        <option value="timeout">Timeout / LWT</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" type="submit">Terapkan</button>
+    <a href="{{ url_for('admin.iot_log') }}" class="btn">Reset</a>
+  </form>
+</div>
+
+<div class="card">
+  <div class="sh"><h3>Incoming MQTT messages</h3><span class="text-muted small" id="iot-log-count">{{ logs|length }} baris</span></div>
+  <div style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>Waktu</th><th>Topic</th><th>pH</th><th>Suhu</th><th>NH3</th><th>QoS</th><th>Status</th></tr></thead>
+      <tbody id="iot-log-body">
+      {% for l in logs %}
+        <tr class="{{ 'row-error' if l.status in ('parse_error','timeout') else '' }}">
+          <td class="mono">{{ l.created_at.strftime('%H:%M:%S') }}</td>
+          <td class="mono text-muted">{{ l.mqtt_topic }}</td>
+          <td>{{ l.ph or '—' }}</td>
+          <td>{{ ('%.1f °C'|format(l.suhu)) if l.suhu else '—' }}</td>
+          <td class="{{ 'text-danger fw-500' if l.status=='bahaya' else ('text-warn fw-500' if l.status=='waspada' else '') }}">{{ ('%.4f'|format(l.nh3)) if l.nh3 is not none else '—' }}</td>
+          <td><span class="badge badge-gray">{{ l.qos }}</span></td>
+          <td>
+            {% if l.status=='normal' %}<span class="badge badge-ok"><i class="ti ti-check"></i> Valid</span>
+            {% elif l.status=='waspada' %}<span class="badge badge-warn"><i class="ti ti-alert-circle"></i> Waspada</span>
+            {% elif l.status=='bahaya' %}<span class="badge badge-danger"><i class="ti ti-alert-triangle"></i> Bahaya</span>
+            {% elif l.status=='parse_error' %}<span class="badge badge-danger"><i class="ti ti-bug"></i> Parse error</span>
+            {% else %}<span class="badge badge-gray"><i class="ti ti-plug-off"></i> LWT: offline</span>{% endif %}
+          </td>
+        </tr>
+      {% else %}<tr><td colspan="7" class="text-center text-muted py-3">Belum ada data</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function formatNumber(value, digits) {
+  return value !== null && value !== undefined ? Number(value).toFixed(digits) : '—';
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderIoTLogRows(logs) {
+  const tbody = document.getElementById('iot-log-body');
+  const count = document.getElementById('iot-log-count');
+  if (!tbody || !count) return;
+
+  count.textContent = `${logs.length} baris`;
+
+  if (!logs.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Belum ada data</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = logs.map(log => {
+    const rowError = ['parse_error', 'timeout'].includes(log.status) ? 'row-error' : '';
+    const nh3Class = log.status === 'bahaya' ? 'text-danger fw-500' : (log.status === 'waspada' ? 'text-warn fw-500' : '');
+    const statusBadge = log.status === 'normal'
+      ? '<span class="badge badge-ok"><i class="ti ti-check"></i> Valid</span>'
+      : log.status === 'waspada'
+        ? '<span class="badge badge-warn"><i class="ti ti-alert-circle"></i> Waspada</span>'
+        : log.status === 'bahaya'
+          ? '<span class="badge badge-danger"><i class="ti ti-alert-triangle"></i> Bahaya</span>'
+          : log.status === 'parse_error'
+            ? '<span class="badge badge-danger"><i class="ti ti-bug"></i> Parse error</span>'
+            : '<span class="badge badge-gray"><i class="ti ti-plug-off"></i> LWT: offline</span>';
+
+    return `
+      <tr class="${rowError}">
+        <td class="mono">${escapeHtml(log.created_at || '—')}</td>
+        <td class="mono text-muted">${escapeHtml(log.mqtt_topic || '—')}</td>
+        <td>${escapeHtml(log.ph !== null && log.ph !== undefined ? log.ph : '—')}</td>
+        <td>${formatNumber(log.suhu, 1)} °C</td>
+        <td class="${nh3Class}">${formatNumber(log.nh3, 4)}</td>
+        <td><span class="badge badge-gray">${escapeHtml(log.qos)}</span></td>
+        <td>${statusBadge}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function refreshIoTLogs() {
+  const query = new URLSearchParams(window.location.search);
+  fetch(`{{ url_for('admin.iot_logs_live') }}?${query.toString()}`)
+    .then(response => response.json())
+    .then(data => renderIoTLogRows(data.logs || []))
+    .catch(() => {});
+}
+
+refreshIoTLogs();
+setInterval(refreshIoTLogs, 1000);
+</script>
+{% endblock %}

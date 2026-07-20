@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Log Telegram — AmoniaLele{% endblock %}
+{% block content %}
+<div class="page-header"><h2>Log Telegram</h2><p>Riwayat notifikasi yang dikirim bot</p></div>
+<div class="card">
+  <div class="sh"><h3>Notifikasi terkirim</h3><span class="badge badge-ok"><i class="ti ti-brand-telegram"></i> Bot aktif</span></div>
+  {% for l in logs %}
+  <div class="tlog">
+    <span class="tt mono">{{ l.created_at.strftime('%H:%M:%S') }}</span>
+    <span>
+      {% if l.tipe=='alert' or l.tipe=='bahaya' %}<span class="badge badge-danger mr-1">Alert</span>
+      {% elif l.tipe=='waspada' %}<span class="badge badge-warn mr-1">Waspada</span>
+      {% elif l.tipe=='pulih' %}<span class="badge badge-ok mr-1">Pulih</span>
+      {% elif l.tipe=='rutin' %}<span class="badge badge-purple mr-1"><i class="ti ti-clock"></i> Rutin</span>
+      {% else %}<span class="badge badge-gray mr-1">LWT</span>{% endif %}
+      {{ l.pesan[:120] }}{% if l.pesan|length > 120 %}…{% endif %}
+      &nbsp;<span class="text-muted">→ {{ l.penerima }}</span>
+      {% if not l.sukses %}<span class="badge badge-danger ml-1">Gagal</span>{% endif %}
+    </span>
+  </div>
+  {% else %}<p class="text-center text-muted py-3">Belum ada log</p>{% endfor %}
+</div>
+{% endblock %}

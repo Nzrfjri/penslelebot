@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}API & Keamanan — AmoniaLele{% endblock %}
+{% block content %}
+<div class="page-header"><h2>API &amp; Keamanan</h2><p>Khusus Super Admin — kelola kunci akses &amp; konfigurasi broker</p></div>
+
+<!-- MQTT Broker -->
+<div class="card mb-3">
+  <div class="sh"><h3><i class="ti ti-router"></i> MQTT Broker</h3></div>
+  <form method="POST">
+    <input type="hidden" name="section" value="mqtt">
+    <div class="row gap-3">
+      <div class="fg" style="flex:2"><label>Broker Host</label><input type="text" name="mqtt_host" value="{{ cfg.mqtt_host or 'localhost' }}"></div>
+      <div class="fg" style="flex:1"><label>Port</label><input type="number" name="mqtt_port" value="{{ cfg.mqtt_port or 1883 }}"></div>
+    </div>
+    <div class="row gap-3">
+      <div class="fg" style="flex:1"><label>Username</label><input type="text" name="mqtt_username" value="{{ cfg.mqtt_username or '' }}"></div>
+      <div class="fg" style="flex:1"><label>Password</label><input type="password" name="mqtt_password" placeholder="(isi untuk mengubah)"></div>
+    </div>
+    <div class="row gap-3">
+      <div class="fg" style="flex:2"><label>Client ID</label><input type="text" name="mqtt_client_id" value="{{ cfg.mqtt_client_id or 'amonialele-server' }}"></div>
+      <div class="fg" style="flex:1"><label>Keep Alive (detik)</label><input type="number" name="mqtt_keepalive" value="{{ cfg.mqtt_keepalive or 60 }}"></div>
+    </div>
+    <div class="fg"><label>Subscribe Topic Pattern</label><input type="text" name="mqtt_topic_sub" value="{{ cfg.mqtt_topic_sub or 'lele/+/data' }}"><span class="hint">Gunakan wildcard + (satu level) atau # (semua level)</span></div>
+    <div class="fg"><label>LWT Topic Pattern</label><input type="text" name="mqtt_topic_lwt" value="{{ cfg.mqtt_topic_lwt or 'lele/+/status' }}"></div>
+    <div style="text-align:right"><button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy"></i> Simpan Konfigurasi MQTT</button></div>
+  </form>
+</div>
+
+<!-- Telegram Bot -->
+<div class="card mb-3">
+  <div class="sh"><h3><i class="ti ti-brand-telegram"></i> Telegram Bot</h3></div>
+  <form method="POST">
+    <input type="hidden" name="section" value="telegram">
+    <div class="fg">
+      <label>Bot Token</label>
+      <div class="apikey-box">
+        <input type="password" name="telegram_bot_token" id="tg-token-input" placeholder="{% if cfg.telegram_bot_token %}••••••••••••••••••••{% else %}Masukkan bot token{% endif %}" style="flex:1;border:none;background:transparent;font-family:var(--font-mono);font-size:12px;color:var(--color-text-primary);outline:none">
+        <button type="button" class="btn" onclick="toggleInput('tg-token-input')"><i class="ti ti-eye"></i></button>
+      </div>
+      <span class="hint">Dapatkan dari @BotFather di Telegram</span>
+    </div>
+    <div style="text-align:right"><button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy"></i> Simpan Token</button></div>
+  </form>
+</div>
+
+<!-- Danger Zone -->
+<div class="danger-zone">
+  <div class="sh"><h3 style="color:var(--c-danger)"><i class="ti ti-alert-triangle"></i> Danger Zone</h3></div>
+  <div class="danger-row">
+    <div><b>Hapus semua log IoT &amp; Telegram</b><div class="hint">Data historis terhapus permanen, tidak bisa dikembalikan</div></div>
+    <form method="POST" action="{{ url_for('admin.hapus_log') }}" onsubmit="return confirm('Yakin hapus SEMUA log? Tidak bisa dikembalikan!')">
+      <button class="btn btn-danger" type="submit"><i class="ti ti-trash"></i> Hapus Log</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleInput(id){
+  const el = document.getElementById(id);
+  el.type = el.type==='password' ? 'text' : 'password';
+}
+</script>
+{% endblock %}

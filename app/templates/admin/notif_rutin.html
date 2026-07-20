@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Notifikasi Rutin — AmoniaLele{% endblock %}
+{% block content %}
+<div class="page-header"><h2>Notifikasi Rutin</h2><p>Laporan berkala kondisi kolam yang dikirim otomatis via Telegram</p></div>
+<form method="POST">
+<div class="row gap-3" style="align-items:flex-start">
+  <div class="card" style="flex:2">
+    <div class="sh"><h3>Jadwal Pengiriman</h3></div>
+    <div class="info-box mb-3"><i class="ti ti-info-circle"></i> Notif rutin dikirim terjadwal meski kondisi normal, sebagai laporan ringkasan berkala.</div>
+    {% for sesi in ['pagi','siang','sore','malam'] %}
+    <div class="sched-row">
+      <div class="sn"><b>Laporan {{ sesi.capitalize() }}</b><div class="hint">Ringkasan semua kolam milik penerima</div></div>
+      <select name="jam_{{ sesi }}" class="select-sm">
+        {% set jam_sesi = jadwal[sesi].jam %}
+        {% for h in range(24) %}
+          {% set opt = '%02d:00'|format(h) %}
+          <option value="{{ opt }}" {% if opt==jam_sesi %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+      <label class="toggle-label">
+        <input type="checkbox" name="aktif_{{ sesi }}" {% if jadwal[sesi].aktif=='1' %}checked{% endif %} style="display:none">
+        <span class="toggle-ui"></span>
+      </label>
+    </div>
+    {% endfor %}
+    <div style="margin-top:14px;text-align:right"><button class="btn btn-primary" type="submit"><i class="ti ti-device-floppy"></i> Simpan Jadwal</button></div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:12px">
+    <div class="card">
+      <div class="sh"><h3>Isi Laporan</h3></div>
+      {% set field_labels = [('isi_nh3','Nilai NH3'),('isi_ph','Nilai pH'),('isi_suhu','Suhu air'),('isi_status_mqtt','Status MQTT (online/LWT)'),('isi_jumlah_alert','Jumlah alert hari ini')] %}
+      {% for field, label in field_labels %}
+      <div class="toggle-row">
+        <span>{{ label }}</span>
+        <label class="toggle-label">
+          <input type="checkbox" name="{{ field }}" {% if isi[field]=='1' %}checked{% endif %} style="display:none">
+          <span class="toggle-ui"></span>
+        </label>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="card">
+      <div class="sh"><h3>Format Pesan Rutin</h3></div>
+      <div class="fg">
+        <label>Template pesan Telegram</label>
+        <textarea name="rutin_template" rows="8" style="width:100%;min-height:140px">{{ cfg.rutin_message_template or '' }}</textarea>
+        <div class="hint">Placeholder: {sesi}, {waktu}, {isi_kolam}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sh"><h3>Preview pesan</h3></div>
+      <div class="preview-msg">🐟 <b>Laporan Pagi — 06:00</b>
+📍 Kolam A-1
+NH3: 0.42 mg/L ✅
+pH: 7.2 ✅ | Suhu: 28.5°C ✅
+
+📍 Kolam B-1
+NH3: 1.83 mg/L 🔴
+pH: 8.1 ⚠️ | Suhu: 31.2°C ⚠️
+
+— AmoniaLeleBot</div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Kolam Saya — AmoniaLele{% endblock %}
+{% block content %}
+<div class="page-header"><h2>Kolam Saya</h2><p>Selamat datang, <b>{{ current_user.nama }}</b> — {{ kolam_list|length }} kolam terdaftar</p></div>
+
+<div class="kolam-grid" id="kolam-grid">
+{% for k in kolam_list %}
+  {% set last = k.last_log %}
+  <div class="kcard {{ 'kcard-offline' if k.status=='offline' else '' }}" data-kolam-id="{{ k.id }}">
+    <div class="kname"><span class="dot dot-{{ 'g' if k.status=='online' else ('a' if k.status=='waspada' else 'r') }}"></span>{{ k.nama }}</div>
+    <div class="krow"><span>NH3</span><span class="kval kval-nh3 {{ 'text-danger' if k.status=='bahaya' else ('text-warn' if k.status=='waspada' else '') }}">{{ ('%.4f mg/L'|format(last.nh3)) if last and last.nh3 is not none else '—' }}</span></div>
+    <div class="krow"><span>pH</span><span class="kval kval-ph">{{ last.ph if last and last.ph else '—' }}</span></div>
+    <div class="krow"><span>Suhu</span><span class="kval kval-suhu">{{ ('%.1f °C'|format(last.suhu)) if last and last.suhu is not none else '—' }}</span></div>
+    <div class="kfoot">
+      <span class="badge badge-{{ 'ok' if k.status=='online' else ('warn' if k.status=='waspada' else ('danger' if k.status in ('alert','bahaya') else 'gray')) }}">
+        {% if k.status=='online' %}Normal{% elif k.status=='waspada' %}Waspada{% elif k.status in ('alert','bahaya') %}Bahaya{% else %}LWT: Offline{% endif %}
+      </span>
+      <a href="{{ url_for('user.history') }}?kolam_id={{ k.id }}" class="btn" style="font-size:11px;padding:3px 8px"><i class="ti ti-history"></i> History</a>
+    </div>
+  </div>
+{% else %}
+  <p class="text-muted">Kamu belum memiliki kolam. Hubungi admin untuk ditambahkan.</p>
+{% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function refreshUserDashboard(){
+  fetch("{{ url_for('user.live_data') }}")
+    .then(r => r.json())
+    .then(data => {
+      data.forEach(k => {
+        const card = document.querySelector(`[data-kolam-id="${k.id}"]`);
+        if (!card) return;
+
+        const status = k.status || "offline";
+        const badge = card.querySelector(".badge");
+        const dot = card.querySelector(".dot");
+        const nh3El = card.querySelector(".kval-nh3");
+
+        nh3El.textContent = k.nh3 !== null && k.nh3 !== undefined ? parseFloat(k.nh3).toFixed(4) + " mg/L" : "—";
+        card.querySelector(".kval-ph").textContent = k.ph !== null && k.ph !== undefined ? k.ph : "—";
+        card.querySelector(".kval-suhu").textContent = k.suhu !== null && k.suhu !== undefined ? parseFloat(k.suhu).toFixed(1) + " °C" : "—";
+
+        card.classList.toggle("kcard-offline", status === "offline");
+        dot.className = `dot dot-${status === "online" ? "g" : status === "waspada" ? "a" : "r"}`;
+        nh3El.className = `kval kval-nh3 ${status === "bahaya" ? "text-danger" : status === "waspada" ? "text-warn" : ""}`.trim();
+
+        if (status === "online") {
+          badge.className = "badge badge-ok";
+          badge.innerHTML = '<i class="ti ti-check"></i> Normal';
+        } else if (status === "waspada") {
+          badge.className = "badge badge-warn";
+          badge.innerHTML = '<i class="ti ti-alert-circle"></i> Waspada';
+        } else if (status === "bahaya" || status === "alert") {
+          badge.className = "badge badge-danger";
+          badge.innerHTML = '<i class="ti ti-alert-triangle"></i> Bahaya';
+        } else {
+          badge.className = "badge badge-gray";
+          badge.innerHTML = '<i class="ti ti-wifi-off"></i> LWT: Offline';
+        }
+      });
+    })
+    .catch(() => {});
+}
+
+refreshUserDashboard();
+setInterval(refreshUserDashboard, 1000);
+</script>
+{% endblock %}
