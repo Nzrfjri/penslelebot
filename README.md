@@ -1,4 +1,4 @@
-# AmoniaLele
+# PENSLeleBot
 
 Aplikasi monitoring kualitas air kolam lele berbasis Flask dengan integrasi MQTT, MySQL, dan Telegram. Aplikasi ini menerima data sensor dari perangkat IoT seperti ESP32, menyimpan log ke database, menilai status kolam, dan mengirim notifikasi otomatis ke pemilik kolam.
 
