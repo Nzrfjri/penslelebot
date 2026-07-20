@@ -1,90 +1,116 @@
-# AmoniaLele — Backend Server
+# AmoniaLele
 
-Sistem monitoring amonia kolam lele berbasis Flask + MQTT + Telegram Bot.
+Aplikasi monitoring kualitas air kolam lele berbasis Flask dengan integrasi MQTT, MySQL, dan Telegram. Aplikasi ini menerima data sensor dari perangkat IoT seperti ESP32, menyimpan log ke database, menilai status kolam, dan mengirim notifikasi otomatis ke pemilik kolam.
 
-## Struktur Proyek
+## Fitur yang tersedia saat ini
 
-```
-amonialele/
-├── run.py                      # Entry point
+- Dashboard admin untuk mengelola kolam, user, log IoT, alert, log Telegram, serta konfigurasi MQTT/Telegram/database.
+- Dashboard pemilik kolam untuk melihat data kolam yang menjadi tanggung jawabnya, riwayat data, dan pengaturan Telegram ID.
+- Penerimaan data sensor melalui MQTT dari topik seperti `lele/kolam-a1/data`.
+- Penilaian status kolam menjadi `normal`, `waspada`, `bahaya`, atau `offline` berdasarkan nilai NH3, pH, dan suhu.
+- Notifikasi Telegram untuk alert, recovery, offline, dan laporan rutin.
+- Scheduler otomatis untuk mengirim laporan rutin dan menandai kolam yang sudah lama tidak update sebagai offline.
+- Seed otomatis akun superadmin default dan setting aplikasi saat aplikasi pertama kali dijalankan.
+
+## Struktur proyek
+
+```text
+amonialele-fromclaudev2/
+├── run.py
 ├── requirements.txt
-├── .env.example                # Salin ke .env dan isi
 ├── config/
-│   └── settings.py             # Konfigurasi dari .env
-└── app/
-    ├── __init__.py             # App factory (create_app)
-    ├── models/
-    │   └── models.py           # SQLAlchemy models (User, Kolam, SensorLog, dll)
-    ├── routes/
-    │   ├── auth.py             # Login / Logout
-    │   ├── admin.py            # Semua halaman admin & super admin
-    │   └── user.py             # Halaman user/pemilik
-    ├── services/
-    │   ├── services.py         # Kalkulasi NH3, kirim Telegram, scheduler rutin
-    │   └── mqtt_client.py      # Koneksi MQTT & handler pesan IoT
-    ├── templates/
-    │   ├── base.html
-    │   ├── auth/login.html
-    │   ├── admin/              # dashboard, iot_log, kolam, user, alert,
-    │   │                       # notif_rutin, telegram_log, api_setting
-    │   └── user/               # dashboard, history, setting
-    └── static/
-        ├── css/style.css
-        └── js/main.js
+│   └── settings.py
+├── app/
+│   ├── __init__.py
+│   ├── models/
+│   │   └── models.py
+│   ├── routes/
+│   │   ├── auth.py
+│   │   ├── admin.py
+│   │   └── user.py
+│   ├── services/
+│   │   ├── mqtt_client.py
+│   │   └── services.py
+│   ├── static/
+│   └── templates/
+└── tests/
 ```
+
+## Persyaratan
+
+- Python 3.10+
+- MySQL Server
+- Broker MQTT (contoh: Mosquitto)
+- Optional: token bot Telegram untuk mengirim notifikasi
 
 ## Setup
 
-### 1. Install dependensi
+### 1. Buat environment virtual
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+### 2. Install dependency
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Konfigurasi environment
-```bash
-cp .env.example .env
-# Edit .env sesuai konfigurasi kamu
-```
+### 3. Siapkan database MySQL
 
-### 3. Setup MySQL
 ```sql
 CREATE DATABASE amonialele CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 4. Setup Mosquitto MQTT Broker
+### 4. Konfigurasi environment
+
+Buat variabel environment berikut sebelum menjalankan aplikasi:
+
 ```bash
-# Install (Ubuntu/Debian)
-sudo apt install mosquitto mosquitto-clients
-
-# Edit /etc/mosquitto/mosquitto.conf
-listener 1883
-allow_anonymous false
-password_file /etc/mosquitto/passwd
-
-# Buat user MQTT
-sudo mosquitto_passwd -c /etc/mosquitto/passwd lele_server
-
-# Restart
-sudo systemctl restart mosquitto
+set SECRET_KEY=dev-secret-key
+set DB_HOST=localhost
+set DB_PORT=3306
+set DB_USER=root
+set DB_PASSWORD=
+set DB_NAME=amonialele
+set MQTT_HOST=localhost
+set MQTT_PORT=1883
+set MQTT_USERNAME=
+set MQTT_PASSWORD=
+set MQTT_CLIENT_ID=amonialele-server
+set MQTT_TOPIC_SUBSCRIBE=lele/+/data
+set MQTT_TOPIC_LWT=lele/+/status
+set TELEGRAM_BOT_TOKEN=
 ```
 
-### 5. Jalankan server
+Jika menggunakan PowerShell, gunakan `$env:NAME = "value"`.
+
+### 5. Jalankan aplikasi
+
 ```bash
 python run.py
 ```
 
-Server berjalan di http://localhost:5000
+Aplikasi akan berjalan di:
+
+```text
+http://localhost:5000
+```
 
 ### 6. Login pertama
+
+Akun superadmin default akan dibuat otomatis saat aplikasi pertama kali dijalankan:
+
 - Email: `admin@lele.id`
 - Password: `admin123`
-- **Segera ganti password setelah login pertama!**
 
----
+Disarankan untuk segera mengubah password setelah login pertama.
 
 ## Format payload MQTT dari ESP32
 
-Kirim JSON ke topic `lele/kolam-a1/data`:
+Kirim data JSON ke topik MQTT yang sudah ditentukan, misalnya `lele/kolam-a1/data`:
 
 ```json
 {
@@ -94,38 +120,31 @@ Kirim JSON ke topic `lele/kolam-a1/data`:
 }
 ```
 
-Field `nh3` bersifat opsional. Server tetap akan menghitung nilai NH3 dari `ph` + `suhu` jika `nh3` tidak dikirim, tetapi juga menerima nilai NH3 yang dikirim perangkat.
+Catatan:
+- Field `nh3` bersifat opsional.
+- Jika `nh3` tidak dikirim, server akan menghitung nilai NH3 dari pH dan suhu.
+- Topik LWT yang umum dipakai untuk perangkat adalah `lele/kolam-a1/status` dengan pesan `offline`.
 
-Server akan otomatis menghitung NH3 dari nilai pH + suhu menggunakan rumus:
-```
-pKa = 0.09018 + (2729.92 / (273.15 + suhu))
-NH3_fraction = 1 / (1 + 10^(pKa - pH))
-```
+## Alur sistem
 
-### LWT (Last Will & Testament)
-Konfigurasi di ESP32:
-- LWT Topic: `lele/kolam-a1/status`
-- LWT Message: `offline`
-- LWT QoS: 1
-
----
-
-## Alur Sistem
-
-```
-ESP32 → MQTT Broker (Mosquitto) → Flask Server
-                                      ↓
-                               Simpan ke MySQL
-                                      ↓
-                               Cek threshold NH3
-                                      ↓
-                        Kirim notif Telegram ke pemilik kolam
+```text
+ESP32 / IoT Device → MQTT Broker → Flask App
+                                ↓
+                           Simpan ke MySQL
+                                ↓
+                      Cek threshold dan status kolam
+                                ↓
+                     Kirim notifikasi Telegram ke pemilik
 ```
 
-## Akun & Role
+## Role pengguna
 
-| Role       | Akses                                              |
-|------------|----------------------------------------------------|
-| superadmin | Semua fitur + API & Keamanan (MQTT, Telegram, DB) |
-| admin      | Dashboard, kelola kolam/user, alert, log           |
-| pemilik    | Hanya kolam miliknya, history, setting Telegram ID |
+- `superadmin`: akses penuh, termasuk pengaturan MQTT, Telegram, database, dan fitur admin lainnya.
+- `admin`: mengelola kolam, user, alert, log, dan notifikasi rutin.
+- `pemilik`: melihat data kolam miliknya, riwayat data, dan mengatur Telegram ID.
+
+## Catatan penting
+
+- Aplikasi akan membuat tabel database secara otomatis saat dijalankan.
+- Konfigurasi threshold dan template pesan dapat diubah melalui halaman admin.
+- Jika Telegram bot token belum diatur, fitur notifikasi Telegram akan dinonaktifkan sampai token tersedia.
